@@ -1,0 +1,125 @@
+/* @import "./base.css"; */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+
+body {
+  background-color: #1e1e1e;
+}
+
+body,
+html {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  gap: 20px 50px;
+}
+
+.jetbrains-mono {
+  font-family: "JetBrains Mono", monospace;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+}
+
+.form-container {
+  width: 300px;
+  text-align: center;
+}
+
+.input-container {
+  position: relative;
+  margin: 20px 0;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px 5px;
+  font-size: 16px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  background-color: transparent;
+  color: #fff;
+}
+
+.input-field:focus {
+  outline: none;
+  border-bottom: 1px solid #fff;
+}
+
+.button {
+  width: 100%;
+  min-width: 300px;
+  padding: 15px 0;
+  font-size: 16px;
+  background-color: #0560fd;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin-top: 20px;
+  text-decoration: none;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.button:hover {
+  background-color: #0110ff;
+}
+::placeholder {
+  position: absolute;
+  font-family: "Inter", sans-serif;
+  color: #ccc;
+}
+p {
+  color: white;
+  font-family: "JetBrains Mono", monospace;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  font-size: 30px;
+}
+
+/* #app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+} */
+
+.calendar {
+  background-color: white;
+}

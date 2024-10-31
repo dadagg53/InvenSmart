@@ -22,6 +22,16 @@ app.use(cors()); // Umożliwienie CORS
 // Ustawienie sekretu do JWT
 const SECRET_KEY = "your_secret_key"; // Użyj silniejszego klucza w produkcji
 
+// Funkcja transliterująca nazwę kategorii (usuwa polskie znaki i formatuje)
+function transliterateToTableName(categoryName) {
+  return categoryName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Usuwanie akcentów
+    .replace(/ł/g, "l")
+    .replace(/ /g, "_")
+    .toLowerCase();
+}
+
 // Endpoint do logowania użytkowników
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
@@ -80,12 +90,13 @@ app.get("/api/kategorie", async (req, res) => {
   }
 });
 
-// Endpoint do dodawania urządzenia
-app.post("/api/urzadzenia", async (req, res) => {
+// Nowy endpoint do dodawania urządzenia do dynamicznie wybranej tabeli
+app.post("/api/addDevice", async (req, res) => {
   const {
     marka,
     model,
-    kategoria, // Używamy nazwy kategorii
+    kategoria_nazwa, // Nazwa kategorii
+    numer_inwentarzowy,
     numer_seryjny,
     service_tag,
     dzial,
@@ -96,39 +107,38 @@ app.post("/api/urzadzenia", async (req, res) => {
     uwagi,
   } = req.body;
 
+  // Transliteracja nazwy kategorii do nazwy tabeli
+  const tableName = transliterateToTableName(kategoria_nazwa);
+
   try {
-    // Ustalamy prefix DI w zależności od kategorii
-    const categoryPrefix = {
-      komputery: "k", // użyj nazwy kategorii
-      monitory: "m",
-      drukarki: "d",
-      inne: "i",
-    };
+    // Sprawdzenie, czy tabela istnieje, a jeśli nie, jej utworzenie
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ${tableName} (
+        id SERIAL PRIMARY KEY,
+        marka TEXT,
+        model TEXT,
+        numer_inwentarzowy TEXT,
+        numer_seryjny TEXT,
+        service_tag TEXT,
+        dzial TEXT,
+        lokalizacja TEXT,
+        glowny_uzytkownik TEXT,
+        osoba_odpowiedzialna TEXT,
+        miejsce_uzytkowania TEXT,
+        uwagi TEXT
+      );
+    `);
 
-    // Uzyskujemy i aktualizujemy ostatni numer dla danej kategorii
-    const categoryResult = await pool.query(
-      "UPDATE kategorie_numeracja SET ostatni_numer = ostatni_numer + 1 WHERE kategoria = $1 RETURNING ostatni_numer",
-      [kategoria] // Użyj nazwy kategorii
-    );
-
-    // Sprawdzanie, czy kategoria istnieje
-    if (categoryResult.rowCount === 0) {
-      return res.status(400).json({ error: "Kategoria nie istnieje." });
-    }
-
-    const newNumber = categoryResult.rows[0].ostatni_numer;
-
-    // Generujemy numer DI w odpowiednim formacie
-    const diNumber = `di-${categoryPrefix[kategoria]}-${newNumber}`;
-
-    // Dodajemy urządzenie do bazy
-    const result = await pool.query(
-      "INSERT INTO urzadzenia (marka, model, kategoria, numer_inwentarzowy, numer_seryjny, service_tag, dzial, lokalizacja, glowny_uzytkownik, osoba_odpowiedzialna, miejsce_uzytkowania, uwagi) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
+    // Dodanie urządzenia do odpowiedniej tabeli
+    await pool.query(
+      `
+      INSERT INTO ${tableName} (marka, model, numer_inwentarzowy, numer_seryjny, service_tag, dzial, lokalizacja, glowny_uzytkownik, osoba_odpowiedzialna, miejsce_uzytkowania, uwagi)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+    `,
       [
         marka,
         model,
-        kategoria, // Używamy kategoria
-        diNumber, // Używamy nowego numeru jako numeru inwentarzowego
+        numer_inwentarzowy,
         numer_seryjny,
         service_tag,
         dzial,
@@ -140,7 +150,50 @@ app.post("/api/urzadzenia", async (req, res) => {
       ]
     );
 
-    res.status(201).json({ message: "Urządzenie dodane pomyślnie!", diNumber });
+    res.status(200).json({ message: "Urządzenie dodane pomyślnie!" });
+  } catch (error) {
+    console.error("Błąd przy dodawaniu urządzenia:", error);
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas dodawania urządzenia." });
+  }
+});
+
+// Endpoint do dodawania urządzenia (oryginalny, pozostawiony dla kompatybilności)
+app.post("/api/urzadzenia", async (req, res) => {
+  const {
+    marka,
+    model,
+    kategoria,
+    numer_seryjny,
+    service_tag,
+    dzial,
+    lokalizacja,
+    glowny_uzytkownik,
+    osoba_odpowiedzialna,
+    miejsce_uzytkowania,
+    uwagi,
+  } = req.body;
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO urzadzenia (marka, model, kategoria, numer_seryjny, service_tag, dzial, lokalizacja, glowny_uzytkownik, osoba_odpowiedzialna, miejsce_uzytkowania, uwagi) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
+      [
+        marka,
+        model,
+        kategoria,
+        numer_seryjny,
+        service_tag,
+        dzial,
+        lokalizacja,
+        glowny_uzytkownik,
+        osoba_odpowiedzialna,
+        miejsce_uzytkowania,
+        uwagi,
+      ]
+    );
+
+    res.status(201).json({ message: "Urządzenie dodane pomyślnie!" });
   } catch (error) {
     console.error("Błąd przy dodawaniu urządzenia:", error);
     res

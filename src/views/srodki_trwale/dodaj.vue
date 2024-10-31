@@ -19,12 +19,12 @@
         />
       </div>
       <div class="input-container">
-        <select v-model="kategoria_id" class="input-field" required>
+        <select v-model="kategoria" class="input-field" required>
           <option value="" disabled selected>Kategoria</option>
           <option
             v-for="kategoria in kategorie"
             :key="kategoria.id"
-            :value="kategoria.id"
+            :value="kategoria.nazwa"
           >
             {{ kategoria.nazwa }}
           </option>
@@ -33,19 +33,18 @@
       <div class="input-container">
         <input
           type="text"
-          v-model="numer_inwentarzowy"
+          v-model="numer_seryjny"
           class="input-field"
-          placeholder="Numer Inwentarzowy"
+          placeholder="Numer Seryjny"
           required
         />
       </div>
       <div class="input-container">
         <input
           type="text"
-          v-model="numer_seryjny"
+          v-model="numer_inwentarzowy"
           class="input-field"
-          placeholder="Numer Seryjny"
-          required
+          placeholder="Numer Inwentarzowy"
         />
       </div>
       <div class="input-container">
@@ -66,13 +65,13 @@
         />
       </div>
       <div class="input-container">
-        <input
-          type="text"
-          v-model="lokalizacja"
-          class="input-field"
-          placeholder="Lokalizacja"
-        />
+        <select v-model="lokalizacja" class="input-field" required>
+          <option value="" disabled selected>Lokalizacja</option>
+          <option value="Kościerzyna">Kościerzyna</option>
+          <option value="Dzierżążno">Dzierżążno</option>
+        </select>
       </div>
+
       <div class="input-container">
         <input
           type="text"
@@ -106,7 +105,6 @@
         />
       </div>
     </div>
-
     <button class="button" @click="addDevice">DODAJ URZĄDZENIE</button>
   </container>
 </template>
@@ -116,14 +114,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
 }
 
 .form-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px; /* Dodanie odstępu między elementami siatki */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
   width: 100%;
-  max-width: 800px; /* Maksymalna szerokość formularza */
+  max-width: 800px;
 }
 
 .input-container {
@@ -153,7 +154,7 @@ select.input-field {
   padding: 10px 5px;
   border: none;
   border-bottom: 1px solid #ccc;
-  background-color: transparent;
+  background-color: #333;
   color: #fff;
 }
 
@@ -166,11 +167,24 @@ select.input-field:focus {
   font-family: "Inter", sans-serif;
   color: #ccc;
 }
+
+.button {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
 </style>
 
 <script>
-import Header from "../../components/Header.vue"; // Ścieżka do komponentu
-import axios from "axios"; // Użycie axios do wykonywania zapytań HTTP
+import Header from "../../components/Header.vue";
+import axios from "axios";
 
 export default {
   components: {
@@ -180,10 +194,10 @@ export default {
     return {
       marka: "",
       model: "",
-      kategoria_id: "", // Użycie kategoria_id
-      kategorie: [], // Dodano zmienną do przechowywania kategorii
-      numer_inwentarzowy: "",
+      kategoria: "",
+      kategorie: [],
       numer_seryjny: "",
+      numer_inwentarzowy: "", // Nowe pole
       service_tag: "",
       dzial: "",
       lokalizacja: "",
@@ -194,38 +208,35 @@ export default {
     };
   },
   async created() {
-    // Pobranie kategorii z serwera
     try {
       const response = await axios.get("http://localhost:3000/api/kategorie");
-      this.kategorie = response.data; // Przypisanie do kategorie
+      this.kategorie = response.data;
     } catch (error) {
       console.error("Błąd przy pobieraniu kategorii:", error);
     }
   },
   methods: {
     async addDevice() {
-      // Walidacja przed wysłaniem
       if (
         !this.marka ||
         !this.model ||
-        !this.kategoria_id ||
-        !this.numer_inwentarzowy ||
+        !this.kategoria ||
         !this.numer_seryjny ||
         !this.dzial
       ) {
-        alert("Proszę uzupełnić wszystkie wymagane pola."); // Informacja o brakujących danych
+        alert("Proszę uzupełnić wszystkie wymagane pola.");
         return;
       }
 
       try {
         const response = await axios.post(
-          "http://localhost:3000/api/urzadzenia",
+          "http://localhost:3000/api/addDevice",
           {
             marka: this.marka,
             model: this.model,
-            kategoria_id: this.kategoria_id, // Użycie kategoria_id
-            numer_inwentarzowy: this.numer_inwentarzowy,
+            kategoria_nazwa: this.kategoria,
             numer_seryjny: this.numer_seryjny,
+            numer_inwentarzowy: this.numer_inwentarzowy,
             service_tag: this.service_tag,
             dzial: this.dzial,
             lokalizacja: this.lokalizacja,
@@ -236,18 +247,16 @@ export default {
           }
         );
 
-        // Przeniesienie do strony "dodano_urzadzenie" z przekazaniem danych
         this.$router.push({
           path: "/dodano_urzadzenie",
           params: {
             marka: this.marka,
             model: this.model,
-            numerInwentarzowy: this.numer_inwentarzowy,
           },
         });
       } catch (error) {
         console.error("Błąd przy dodawaniu urządzenia:", error);
-        alert("Wystąpił błąd podczas dodawania urządzenia."); // Możesz dodać lepszą obsługę błędów
+        alert("Wystąpił błąd podczas dodawania urządzenia.");
       }
     },
   },

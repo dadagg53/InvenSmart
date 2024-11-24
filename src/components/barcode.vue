@@ -16,7 +16,17 @@ export default {
     },
   },
   mounted() {
-    JsBarcode(this.$refs.barcode, this.value);
+    this.generateBarcode();
+  },
+  watch: {
+    value: "generateBarcode", // Generuj ponownie kod, gdy zmienia się wartość
+  },
+  methods: {
+    generateBarcode() {
+      JsBarcode(this.$refs.barcode, this.value, {
+        format: "CODE128", // Format kodu kreskowego
+      });
+    },
   },
 };
 </script>

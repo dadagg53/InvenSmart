@@ -32,6 +32,71 @@ function transliterateToTableName(categoryName) {
     .toLowerCase();
 }
 
+// Endpoint do wyszukiwania urządzeń z tabel dynamicznych przy wyborze kategorii
+app.get("/api/searchDevices", async (req, res) => {
+  const { search, category } = req.query;
+
+  if (!search) {
+    return res.status(400).json({ error: "Wyszukiwane słowo jest puste." });
+  }
+
+  if (!category) {
+    return res.status(400).json({ error: "Kategoria jest wymagana." });
+  }
+
+  try {
+    // Pobierz dostępne kategorie (nazwy tabel urządzeń)
+    const categoriesResult = await pool.query("SELECT * FROM kategorie");
+    const categories = categoriesResult.rows;
+
+    if (categories.length === 0) {
+      return res.status(404).json({ error: "Brak dostępnych kategorii." });
+    }
+
+    // Sprawdzenie, czy podana kategoria istnieje
+    const categoryExists = categories.some(
+      (cat) => cat.nazwa.toLowerCase() === category.toLowerCase()
+    );
+
+    if (!categoryExists) {
+      return res.status(404).json({ error: "Kategoria nie istnieje." });
+    }
+
+    // Tłumaczenie nazwy kategorii na nazwę tabeli
+    const tableName = transliterateToTableName(category);
+
+    // Zapytanie do dynamicznej tabeli
+    const query = `
+      SELECT * FROM ${tableName}
+      WHERE marka ILIKE $1
+         OR model ILIKE $1
+         OR numer_inwentarzowy ILIKE $1
+         OR numer_seryjny ILIKE $1
+         OR service_tag ILIKE $1
+         OR dzial ILIKE $1
+         OR lokalizacja ILIKE $1
+         OR glowny_uzytkownik ILIKE $1
+         OR osoba_odpowiedzialna ILIKE $1
+         OR miejsce_uzytkowania ILIKE $1
+         OR uwagi ILIKE $1
+    `;
+
+    // Wykonanie zapytania z parametrem search
+    const result = await pool.query(query, [`%${search}%`]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Nie znaleziono wyników." });
+    }
+
+    res.json(result.rows); // Zwróć wyniki wyszukiwania
+  } catch (error) {
+    console.error("Błąd podczas wyszukiwania urządzeń:", error);
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas wyszukiwania urządzeń." });
+  }
+});
+
 // Endpoint do logowania użytkowników
 app.post("/api/login", async (req, res) => {
   const { login, password } = req.body;
@@ -151,49 +216,6 @@ app.post("/api/addDevice", async (req, res) => {
     );
 
     res.status(200).json({ message: "Urządzenie dodane pomyślnie!" });
-  } catch (error) {
-    console.error("Błąd przy dodawaniu urządzenia:", error);
-    res
-      .status(500)
-      .json({ error: "Wystąpił błąd podczas dodawania urządzenia." });
-  }
-});
-
-// Endpoint do dodawania urządzenia (oryginalny, pozostawiony dla kompatybilności)
-app.post("/api/urzadzenia", async (req, res) => {
-  const {
-    marka,
-    model,
-    kategoria,
-    numer_seryjny,
-    service_tag,
-    dzial,
-    lokalizacja,
-    glowny_uzytkownik,
-    osoba_odpowiedzialna,
-    miejsce_uzytkowania,
-    uwagi,
-  } = req.body;
-
-  try {
-    const result = await pool.query(
-      "INSERT INTO urzadzenia (marka, model, kategoria, numer_seryjny, service_tag, dzial, lokalizacja, glowny_uzytkownik, osoba_odpowiedzialna, miejsce_uzytkowania, uwagi) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
-      [
-        marka,
-        model,
-        kategoria,
-        numer_seryjny,
-        service_tag,
-        dzial,
-        lokalizacja,
-        glowny_uzytkownik,
-        osoba_odpowiedzialna,
-        miejsce_uzytkowania,
-        uwagi,
-      ]
-    );
-
-    res.status(201).json({ message: "Urządzenie dodane pomyślnie!" });
   } catch (error) {
     console.error("Błąd przy dodawaniu urządzenia:", error);
     res

@@ -87,7 +87,7 @@ const routes = [
     meta: { requiresAuth: true }, // Ochrona trasy
   },
   {
-    path: "/drukuj_barcode",
+    path: "/drukuj_barcode/:id", // Dodanie parametru :id
     name: "drukuj_barcode",
     component: Drukuj_barcode,
     meta: { requiresAuth: true }, // Ochrona trasy

@@ -1,130 +1,241 @@
 <template>
-  <Header />
-  <container class="content">
-    <div class="form-container">
-      <div class="input-container">
-        <input type="text" id="marka" class="input-field" placeholder="Marka" />
+  <div class="find-devices">
+    <h2 class="page-title">Wyszukaj urządzenia</h2>
+
+    <!-- Formularz wyszukiwania -->
+    <form @submit.prevent="searchDevices" class="search-form">
+      <div class="form-group">
+        <label for="category" class="form-label">Wybierz kategorię</label>
+        <select
+          v-model="selectedCategory"
+          id="category"
+          required
+          class="form-input"
+        >
+          <option
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.nazwa"
+          >
+            {{ category.nazwa }}
+          </option>
+        </select>
       </div>
-      <div class="input-container">
+
+      <div class="form-group">
+        <label for="search" class="form-label">Wyszukaj urządzenia</label>
         <input
           type="text"
-          id="kategoria"
-          class="input-field"
-          placeholder="Kategoria"
+          v-model="searchQuery"
+          id="search"
+          placeholder="Szukaj po marce, modelu..."
+          required
+          class="form-input"
         />
       </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="numer_seryjny"
-          class="input-field"
-          placeholder="Numer Seryjny"
-        />
-      </div>
-      <div class="input-container">
-        <input type="text" id="dzial" class="input-field" placeholder="Dział" />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="glowny_uzytkownik"
-          class="input-field"
-          placeholder="Główny Użytkownik"
-        />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="miejsce_uzytkowania"
-          class="input-field"
-          placeholder="Miejsce użytkowania"
-        />
-      </div>
-      <div class="input-container">
-        <input type="text" id="model" class="input-field" placeholder="Model" />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="numer_inwentarzowy"
-          class="input-field"
-          placeholder="Numer inwentarzowy"
-        />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="service_tag"
-          class="input-field"
-          placeholder="Service TAG"
-        />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="lokalizacja"
-          class="input-field"
-          placeholder="Lokalizacja"
-        />
-      </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="osoba_odpowiedzialna"
-          class="input-field"
-          placeholder="Osoba odpowiedzialna"
-        />
-      </div>
-      <div class="input-container">
-        <input type="text" id="uwagi" class="input-field" placeholder="Uwagi" />
-      </div>
+
+      <button type="submit" class="btn btn-primary">Szukaj</button>
+    </form>
+
+    <!-- Lista wyników wyszukiwania -->
+    <div v-if="devices.length > 0" class="search-results">
+      <h3 class="results-title">Wyniki wyszukiwania</h3>
+      <ul>
+        <li v-for="device in devices" :key="device.id" class="device-item">
+          <strong>{{ device.marka }} - {{ device.model }}</strong>
+          <p>Numer inwentarzowy: {{ device.numer_inwentarzowy }}</p>
+          <p>Numer seryjny: {{ device.numer_seryjny }}</p>
+          <p>Lokalizacja: {{ device.lokalizacja }}</p>
+        </li>
+      </ul>
     </div>
 
-    <RouterLink to="/znalezione_urzadzenie">
-      <button class="button">ZNAJDŹ URZĄDZENIE</button>
-    </RouterLink>
-  </container>
+    <!-- Komunikat, gdy nie ma wyników -->
+    <div v-else-if="searched" class="no-results">
+      <p>Brak wyników do wyświetlenia.</p>
+    </div>
+
+    <!-- Komunikat o błędzie -->
+    <div v-if="errorMessage" class="error-message">
+      <p>{{ errorMessage }}</p>
+    </div>
+  </div>
 </template>
+
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      searchQuery: "", // Wartość wyszukiwania
+      selectedCategory: "", // Wybrana kategoria
+      categories: [], // Lista kategorii
+      devices: [], // Wyniki wyszukiwania
+      searched: false, // Flaga, aby wiedzieć, że wyszukiwanie było wykonane
+      errorMessage: "", // Komunikaty o błędach
+    };
+  },
+  methods: {
+    // Pobierz dostępne kategorie z serwera
+    async fetchCategories() {
+      try {
+        const response = await axios.get("http://localhost:3000/api/kategorie");
+        this.categories = response.data;
+      } catch (error) {
+        console.error("Błąd przy ładowaniu kategorii:", error);
+        this.errorMessage = "Nie udało się załadować kategorii.";
+      }
+    },
+
+    // Wyszukiwanie urządzeń
+    async searchDevices() {
+      if (!this.searchQuery || !this.selectedCategory) {
+        this.errorMessage = "Proszę podać słowo kluczowe i wybrać kategorię.";
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          "http://localhost:3000/api/searchDevices",
+          {
+            params: {
+              search: this.searchQuery,
+              category: this.selectedCategory,
+            },
+          }
+        );
+        this.devices = response.data;
+        this.searched = true;
+        this.errorMessage = ""; // Resetowanie komunikatu błędu
+      } catch (error) {
+        console.error("Błąd przy wyszukiwania urządzeń:", error);
+        this.errorMessage = "Wystąpił błąd podczas wyszukiwania urządzeń.";
+        this.devices = [];
+      }
+    },
+  },
+  mounted() {
+    // Pobranie dostępnych kategorii po załadowaniu komponentu
+    this.fetchCategories();
+  },
+};
+</script>
+
 <style scoped>
-.content {
+.find-devices {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: #f4f6f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+p {
+  color: black;
+}
+.page-title {
+  font-size: 2em;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 25px;
+}
+
+.search-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
-.form-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px; /* Dodanie odstępu między elementami siatki */
-  width: 100%;
-  max-width: 800px; /* Maksymalna szerokość formularza */
+.form-group {
+  margin-bottom: 20px;
 }
 
-.input-container:nth-child(-n + 6) {
-  grid-column: 1; /* Pierwsze 6 pól w pierwszej kolumnie */
+.form-label {
+  font-weight: 600;
+  color: #4b4b4b;
+  margin-bottom: 8px;
 }
 
-.input-container:nth-child(n + 7) {
-  grid-column: 2; /* Kolejne pola w drugiej kolumnie */
-}
-
-.input-field {
-  width: 100%;
-  padding: 10px 5px;
+.form-input {
+  padding: 12px;
   font-size: 16px;
-  border: none;
-  border-bottom: 1px solid #ccc;
-  background-color: transparent;
-  color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  width: 100%;
+  transition: border-color 0.3s;
 }
 
-.input-field:focus {
+.form-input:focus {
+  border-color: #007bff;
   outline: none;
-  border-bottom: 1px solid #fff;
 }
 
-::placeholder {
-  font-family: "Inter", sans-serif;
-  color: #ccc;
+.btn {
+  padding: 14px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.search-results {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.results-title {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.device-item {
+  border-bottom: 1px solid #ddd;
+  padding: 12px 0;
+  color: #333;
+}
+
+.device-item strong {
+  font-size: 1.3em;
+  color: #333;
+}
+
+.device-item p {
+  margin: 5px 0;
+  font-size: 1em;
+}
+
+.device-item:hover {
+  background-color: #f0f8ff;
+}
+
+.no-results {
+  margin-top: 30px;
+  color: #777;
+}
+
+.error-message {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  font-size: 1em;
 }
 </style>

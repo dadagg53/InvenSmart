@@ -1,12 +1,18 @@
 <template>
   <Header />
   <p>Dodano urządzenie {{ marka }}, {{ model }} o numerze DI {{ numer_di }}</p>
-  <container class="content">
-    <RouterLink to="/srodki_trwale">
-      <button class="button">DRUKUJ QR</button>
-    </RouterLink>
-    <RouterLink to="/drukuj_barcode">
+  <div class="content">
+    <RouterLink
+      v-if="numer_di"
+      :to="{ name: 'drukuj_barcode', params: { id: numer_di } }"
+    >
       <button class="button">DRUKUJ KOD KRESKOWY</button>
+    </RouterLink>
+    <RouterLink
+      v-if="numer_di"
+      :to="{ name: 'drukuj_barcode', params: { id: numer_di } }"
+    >
+      <button class="button">DRUKUJ QR</button>
     </RouterLink>
     <RouterLink to="/dodaj">
       <button class="button">DODAJ KOLEJNE URZĄDZENIE</button>
@@ -14,7 +20,7 @@
     <RouterLink to="/menu">
       <button class="button">MENU GŁÓWNE</button>
     </RouterLink>
-  </container>
+  </div>
 </template>
 
 <script>
@@ -30,6 +36,9 @@ export default {
       model: this.$route.query.model || "", // Odbierz model z query params
       numer_di: this.$route.query.numer_di || "", // Odbierz numer DI z query params
     };
+  },
+  created() {
+    console.log("Numer DI:", this.numer_di); // Debugowanie
   },
 };
 </script>

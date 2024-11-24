@@ -1,6 +1,6 @@
 <template>
   <Header />
-  <container class="content">
+  <div class="content">
     <div class="form-container">
       <div class="input-container">
         <input
@@ -71,7 +71,6 @@
           <option value="Dzierżążno">Dzierżążno</option>
         </select>
       </div>
-
       <div class="input-container">
         <input
           type="text"
@@ -106,7 +105,11 @@
       </div>
     </div>
     <button class="button" @click="addDevice">DODAJ URZĄDZENIE</button>
-  </container>
+    <div v-if="qrCodeValue" class="qr-code">
+      <h3>Wygenerowany QR Code:</h3>
+      <qrcode-vue :value="qrCodeValue" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -117,6 +120,8 @@
   width: 100%;
   height: 100%;
   padding: 20px;
+  background-color: #1e1e1e; /* Tło */
+  color: #fff; /* Kolor tekstu */
 }
 
 .form-container {
@@ -139,12 +144,12 @@
   border: none;
   border-bottom: 1px solid #ccc;
   background-color: transparent;
-  color: #fff;
+  color: #fff; /* Kolor tekstu w polach */
 }
 
 .input-field:focus {
   outline: none;
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid #007bff;
 }
 
 select.input-field {
@@ -160,7 +165,7 @@ select.input-field {
 
 select.input-field:focus {
   outline: none;
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid #007bff;
 }
 
 ::placeholder {
@@ -180,15 +185,22 @@ select.input-field:focus {
 .button:hover {
   background-color: #0056b3;
 }
+
+.qr-code {
+  margin-top: 20px;
+  text-align: center;
+}
 </style>
 
 <script>
 import Header from "../../components/Header.vue";
 import axios from "axios";
+import QRCode from "qrcode.vue"; // Importuj komponent QR Code
 
 export default {
   components: {
     Header,
+    QRCode, // Zarejestruj komponent QR Code
   },
   data() {
     return {
@@ -197,7 +209,7 @@ export default {
       kategoria: "",
       kategorie: [],
       numer_seryjny: "",
-      numer_inwentarzowy: "", // Nowe pole
+      numer_inwentarzowy: "",
       service_tag: "",
       dzial: "",
       lokalizacja: "",
@@ -205,6 +217,7 @@ export default {
       osoba_odpowiedzialna: "",
       miejsce_uzytkowania: "",
       uwagi: "",
+      qrCodeValue: "", // Dodano zmienną do przechowywania wartości QR
     };
   },
   async created() {
@@ -247,6 +260,10 @@ export default {
           }
         );
 
+        // Ustaw wartość QR Code po dodaniu urządzenia
+        this.qrCodeValue = response.data.qrCodeValue || ""; // Upewnij się, że API zwraca wartość QR Code
+
+        // Przekierowanie po dodaniu urządzenia
         this.$router.push({
           path: "/dodano_urzadzenie",
           params: {

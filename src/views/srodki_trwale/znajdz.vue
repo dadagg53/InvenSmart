@@ -34,6 +34,14 @@
         />
       </div>
 
+      <!-- Checkbox do wyboru typu wyszukiwania 
+      <div class="form-group">
+        <label for="exactMatch" class="form-label">
+          <input type="checkbox" v-model="exactMatch" id="exactMatch" />
+          Szukaj dokładnie (pełne słowo)
+        </label>
+      </div>-->
+
       <button type="submit" class="btn btn-primary">Szukaj</button>
     </form>
 
@@ -72,6 +80,7 @@ export default {
       selectedCategory: "", // Wybrana kategoria
       categories: [], // Lista kategorii
       devices: [], // Wyniki wyszukiwania
+      exactMatch: false, // Flaga dla dokładnego dopasowania
       searched: false, // Flaga, aby wiedzieć, że wyszukiwanie było wykonane
       errorMessage: "", // Komunikaty o błędach
     };
@@ -95,6 +104,9 @@ export default {
         return;
       }
 
+      // Określamy rodzaj dopasowania na podstawie checkboxa
+      const matchType = this.exactMatch ? "=" : "ILIKE"; // Jeżeli checkbox jest zaznaczony, używamy '=' dla dokładnego dopasowania, w przeciwnym razie 'ILIKE' dla częściowego dopasowania
+
       try {
         const response = await axios.get(
           "http://localhost:3000/api/searchDevices",
@@ -102,6 +114,7 @@ export default {
             params: {
               search: this.searchQuery,
               category: this.selectedCategory,
+              matchType: matchType, // Wysyłamy typ dopasowania
             },
           }
         );
@@ -123,6 +136,7 @@ export default {
 </script>
 
 <style scoped>
+/* Dodajemy style, które wcześniej były zaproponowane */
 .find-devices {
   max-width: 800px;
   margin: 0 auto;
@@ -131,9 +145,11 @@ export default {
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
 p {
   color: black;
 }
+
 .page-title {
   font-size: 2em;
   font-weight: 700;

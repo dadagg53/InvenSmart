@@ -32,57 +32,43 @@ function transliterateToTableName(categoryName) {
     .toLowerCase();
 }
 
-// Endpoint do wyszukiwania urządzeń z tabel dynamicznych przy wyborze kategorii
+// Endpoint do wyszukiwania urządzeń
 app.get("/api/searchDevices", async (req, res) => {
-  const { search, category } = req.query;
+  const { search, category, matchType } = req.query;
 
-  if (!search) {
-    return res.status(400).json({ error: "Wyszukiwane słowo jest puste." });
-  }
-
-  if (!category) {
-    return res.status(400).json({ error: "Kategoria jest wymagana." });
+  if (!search || !category) {
+    return res
+      .status(400)
+      .json({ error: "Wyszukiwane słowo lub kategoria nie zostały podane." });
   }
 
   try {
-    // Pobierz dostępne kategorie (nazwy tabel urządzeń)
-    const categoriesResult = await pool.query("SELECT * FROM kategorie");
-    const categories = categoriesResult.rows;
-
-    if (categories.length === 0) {
-      return res.status(404).json({ error: "Brak dostępnych kategorii." });
-    }
-
-    // Sprawdzenie, czy podana kategoria istnieje
-    const categoryExists = categories.some(
-      (cat) => cat.nazwa.toLowerCase() === category.toLowerCase()
-    );
-
-    if (!categoryExists) {
-      return res.status(404).json({ error: "Kategoria nie istnieje." });
-    }
-
-    // Tłumaczenie nazwy kategorii na nazwę tabeli
+    // Tłumaczymy nazwę kategorii na nazwę tabeli
     const tableName = transliterateToTableName(category);
 
-    // Zapytanie do dynamicznej tabeli
+    // Ustalamy operator w zależności od wartości matchType
+    const operator = matchType === "exact" ? "=" : "ILIKE"; // exact - pełne dopasowanie, ILIKE - częściowe dopasowanie
+
+    // Przygotowanie zapytania SQL
     const query = `
       SELECT * FROM ${tableName}
-      WHERE marka ILIKE $1
-         OR model ILIKE $1
-         OR numer_inwentarzowy ILIKE $1
-         OR numer_seryjny ILIKE $1
-         OR service_tag ILIKE $1
-         OR dzial ILIKE $1
-         OR lokalizacja ILIKE $1
-         OR glowny_uzytkownik ILIKE $1
-         OR osoba_odpowiedzialna ILIKE $1
-         OR miejsce_uzytkowania ILIKE $1
-         OR uwagi ILIKE $1
+      WHERE marka ${operator} $1
+         OR model ${operator} $1
+         OR numer_inwentarzowy ${operator} $1
+         OR numer_seryjny ${operator} $1
+         OR service_tag ${operator} $1
+         OR dzial ${operator} $1
+         OR lokalizacja ${operator} $1
+         OR glowny_uzytkownik ${operator} $1
+         OR osoba_odpowiedzialna ${operator} $1
+         OR miejsce_uzytkowania ${operator} $1
+         OR uwagi ${operator} $1
     `;
 
-    // Wykonanie zapytania z parametrem search
-    const result = await pool.query(query, [`%${search}%`]);
+    // Używamy procentów w przypadku częściowego dopasowania, w przeciwnym przypadku nie
+    const searchTerm = matchType === "exact" ? search : `%${search}%`;
+
+    const result = await pool.query(query, [searchTerm]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Nie znaleziono wyników." });
@@ -228,4 +214,37 @@ app.post("/api/addDevice", async (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
+});
+
+// Endpoint do pobierania urządzeń na podstawie kategorii
+app.get("/api/urzadzenia", async (req, res) => {
+  const { category } = req.query;
+
+  if (!category) {
+    return res.status(400).json({ error: "Kategoria jest wymagana." });
+  }
+
+  try {
+    // Transliterator, aby upewnić się, że kategoria jest przetłumaczona na nazwę tabeli
+    const tableName = transliterateToTableName(category);
+
+    // Zapytanie SQL do odpowiedniej tabeli
+    const query = `SELECT * FROM ${tableName}`;
+
+    // Wykonanie zapytania do bazy danych
+    const result = await pool.query(query);
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Brak urządzeń w tej kategorii." });
+    }
+
+    res.json(result.rows); // Zwróć urządzenia
+  } catch (error) {
+    console.error("Błąd przy pobieraniu urządzeń:", error);
+    res
+      .status(500)
+      .json({ message: "Wystąpił błąd podczas pobierania urządzeń." });
+  }
 });

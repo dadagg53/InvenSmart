@@ -13,6 +13,12 @@ import Znalezione_urzadzenie from "../views/srodki_trwale/znalezione_urzadzenie.
 import Lista_urzadzen from "../views/srodki_trwale/lista_urzadzen.vue";
 import Wyszukiwarka_urzadzenia from "../views/srodki_trwale/wyszukiwarka_urzadzenia.vue";
 import Drukuj_barcode from "../views/srodki_trwale/drukuj_barcode.vue";
+import Licencje from "../views/licencje/licencje.vue";
+import Dodaj_licencje from "../views/licencje/dodaj_licencje.vue";
+import Lista_licencji from "../views/licencje/lista_licencji.vue";
+import Szczegoly_licencji from "../views/licencje/szczegoly_licencji.vue";
+import Zarzadzaj_licencjami from "../views/licencje/zarzadzaj_licencjami.vue";
+import Znajdz_licencje from "../views/licencje/znajdz_licencje.vue";
 
 const routes = [
   {
@@ -90,6 +96,43 @@ const routes = [
     path: "/drukuj_barcode/:id", // Dodanie parametru :id
     name: "drukuj_barcode",
     component: Drukuj_barcode,
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/licencje",
+    name: "licencje",
+    component: Licencje,
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/dodaj_licencje",
+    name: "dodaj_licencje",
+    component: Dodaj_licencje,
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/lista_licencji",
+    name: "lista_licencji",
+    component: Lista_licencji,
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/szczegoly_licencji/:id",
+    name: "szczegoly_licencji",
+    component: Szczegoly_licencji,
+    props: true, // Umożliwia przekazanie parametru 'id' do komponentu
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/zarzadzaj_licencjami",
+    name: "zarzadzaj_licencjami",
+    component: Zarzadzaj_licencjami,
+    meta: { requiresAuth: true }, // Ochrona trasy
+  },
+  {
+    path: "/znajdz_licencje",
+    name: "znajdz_licencje",
+    component: Znajdz_licencje,
     meta: { requiresAuth: true }, // Ochrona trasy
   },
 ];

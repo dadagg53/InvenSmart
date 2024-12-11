@@ -4,7 +4,10 @@
     <RouterLink to="/srodki_trwale">
       <button class="button">ŚRODKI TRWAŁE</button>
     </RouterLink>
-    <button class="button">LICENCJE</button>
+    <RouterLink to="/licencje">
+      <button class="button">LICENCJE</button>
+    </RouterLink>
+
     <button class="button">PRZEGLĄDY</button>
     <button class="button">RAPORTY</button>
     <RouterLink to="/kalendarz">

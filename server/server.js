@@ -1,5 +1,6 @@
 // Importowanie wymaganych bibliotek
 const express = require("express");
+const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
@@ -14,10 +15,12 @@ const pool = new Pool({
   password: "PPx215$Q",
   port: 5432,
 });
-
 // Middleware do parsowania JSON i CORS
 app.use(express.json());
 app.use(cors()); // Umożliwienie CORS
+// Middleware do parsowania JSON-a
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Ustawienie sekretu do JWT
 const SECRET_KEY = "your_secret_key"; // Użyj silniejszego klucza w produkcji
@@ -246,5 +249,222 @@ app.get("/api/urzadzenia", async (req, res) => {
     res
       .status(500)
       .json({ message: "Wystąpił błąd podczas pobierania urządzeń." });
+  }
+});
+
+// Endpoint do dodawania wydarzenia
+app.post("/api/addEvent", async (req, res) => {
+  const { tytul, data, godzina_rozpoczecia, godzina_zakonczenia, opis } =
+    req.body;
+
+  // Walidacja danych wejściowych
+  if (!tytul || !data || !godzina_rozpoczecia || !godzina_zakonczenia) {
+    return res.status(400).json({ error: "Wszystkie pola są wymagane." });
+  }
+
+  try {
+    // Tablica wartości do zapytania
+    const values = [
+      tytul,
+      data,
+      godzina_rozpoczecia,
+      godzina_zakonczenia,
+      opis || null,
+    ];
+
+    // Dodanie wydarzenia do tabeli
+    await pool.query(
+      `INSERT INTO wydarzenia (tytul, data, godzina_rozpoczecia, godzina_zakonczenia, opis)
+       VALUES ($1, $2, $3, $4, $5);`,
+      values // Przekazanie wartości do zapytania
+    );
+
+    res.status(201).json({ message: "Wydarzenie zostało dodane pomyślnie!" });
+  } catch (error) {
+    console.error("Błąd przy dodawaniu wydarzenia:", error);
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas dodawania wydarzenia." });
+  }
+});
+
+// Endpoint do pobierania wszystkich wydarzeń
+app.get("/api/events", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM wydarzenia ORDER BY data ASC, godzina_rozpoczecia ASC"
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Brak wydarzeń." });
+    }
+
+    res.json(result.rows); // Zwróć wydarzenia
+  } catch (error) {
+    console.error("Błąd przy pobieraniu wydarzeń:", error);
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas pobierania wydarzeń." });
+  }
+});
+app.post("/endpoint", (req, res) => {
+  console.log("Otrzymano dane:", req.body);
+
+  const { tytul, data, godzina_rozpoczecia, godzina_zakonczenia, opis } =
+    req.body;
+
+  if (
+    !tytul ||
+    !data ||
+    !godzina_rozpoczecia ||
+    !godzina_zakonczenia ||
+    !opis
+  ) {
+    return res.status(400).send("Brak wymaganych pól!");
+  }
+
+  const query = `
+    INSERT INTO wydarzenia (tytul, data, godzina_rozpoczecia, godzina_zakonczenia, opis)
+    VALUES ($1, $2, $3, $4, $5)
+  `;
+  const values = [tytul, data, godzina_rozpoczecia, godzina_zakonczenia, opis];
+
+  pool
+    .query(query, values)
+    .then(() => res.status(201).send("Wydarzenie dodane!"))
+    .catch((error) => {
+      console.error("Błąd przy dodawaniu wydarzenia:", error);
+      res.status(500).send("Błąd serwera");
+    });
+});
+
+// Endpoint do dodawania licencji
+app.post("/api/addLicense", async (req, res) => {
+  const {
+    nazwa,
+    typ,
+    data_rozpoczecia,
+    data_zakonczenia,
+    numer_seryjny,
+    status,
+    opis,
+  } = req.body;
+
+  if (!nazwa || !typ) {
+    return res.status(400).json({ error: "Nazwa i typ licencji są wymagane." });
+  }
+
+  try {
+    // Zapytanie SQL do dodania licencji
+    await pool.query(
+      `INSERT INTO licencje (nazwa, typ, data_rozpoczecia, data_zakonczenia, numer_seryjny, status, opis)
+      VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+      [
+        nazwa,
+        typ,
+        data_rozpoczecia,
+        data_zakonczenia,
+        numer_seryjny,
+        status,
+        opis,
+      ]
+    );
+
+    res.status(201).json({ message: "Licencja została dodana pomyślnie!" });
+  } catch (error) {
+    console.error("Błąd przy dodawaniu licencji:", error);
+    res.status(500).json({ error: "Wystąpił błąd przy dodawaniu licencji." });
+  }
+});
+
+// Endpoint do wyszukiwania licencji na podstawie numeru lub tytułu
+app.get("/api/licenses/search", async (req, res) => {
+  const { term } = req.query;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM licencje WHERE nazwa ILIKE $1 OR numer_seryjny ILIKE $1",
+      [`%${term}%`] // Używamy operatora LIKE dla wyszukiwania częściowego
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Brak wyników" });
+    }
+
+    res.json(result.rows); // Zwracamy wyniki wyszukiwania
+  } catch (error) {
+    console.error("Błąd podczas wyszukiwania licencji:", error);
+    res
+      .status(500)
+      .json({ error: "Wystąpił błąd podczas wyszukiwania licencji." });
+  }
+});
+//Endpoint do pobierania szczegółów licencji
+app.get("/api/licenses/:id", async (req, res) => {
+  const { id } = req.params; // Pobierz ID z parametrów URL
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM licencje WHERE id = $1",
+      [id] // Zapytanie SQL, które pobiera licencję po ID
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Licencja nie znaleziona" });
+    }
+
+    res.json(result.rows[0]); // Zwróć szczegóły licencji
+  } catch (error) {
+    console.error("Błąd przy pobieraniu licencji:", error);
+    res.status(500).json({ error: "Błąd serwera" });
+  }
+});
+
+//Endpoint do listy licencji
+app.get("/api/licenses", async (req, res) => {
+  try {
+    let query = "SELECT * FROM licencje";
+    let params = [];
+    let filter = [];
+    let order = "";
+
+    // Filtracja po statusie
+    if (req.query.status) {
+      filter.push(`status = $${params.length + 1}`);
+      params.push(req.query.status);
+    }
+
+    // Wyszukiwanie po kolumnach
+    if (req.query.search) {
+      const searchColumns = ["nazwa", "numer_seryjny", "status", "opis"];
+
+      // Dodanie warunków dla każdej z kolumn (pomijamy daty)
+      searchColumns.forEach((column, index) => {
+        filter.push(`${column} ILIKE $${params.length + 1}`);
+        params.push(`%${req.query.search}%`);
+      });
+
+      // Dodanie warunków dla dat (konwersja na tekst za pomocą TO_CHAR)
+      filter.push(
+        `TO_CHAR(data_rozpoczecia, 'YYYY-MM-DD') ILIKE $${params.length + 1}`
+      );
+      params.push(`%${req.query.search}%`);
+      filter.push(
+        `TO_CHAR(data_zakonczenia, 'YYYY-MM-DD') ILIKE $${params.length + 1}`
+      );
+      params.push(`%${req.query.search}%`);
+    }
+
+    // Dodanie warunków do zapytania
+    if (filter.length > 0) {
+      query += " WHERE " + filter.join(" OR "); // Łączenie warunków z "OR", aby wyszukiwać po dowolnej kolumnie
+    }
+
+    // Wywołanie zapytania
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Błąd podczas pobierania licencji:", err);
+    res.status(500).send("Błąd serwera");
   }
 });
